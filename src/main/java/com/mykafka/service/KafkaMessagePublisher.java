@@ -17,20 +17,19 @@ public class KafkaMessagePublisher {
 
     @Autowired
     private KafkaTemplate<String,Object> template;
-    @Value("${topic.name}")
+
+    @Value("${myproducer.topic-name}")
     String topicName = "";
 
     public void sendObjectToTopic(Customer customer) {
-
         try {
             CompletableFuture<SendResult<String, Object>> future =
                     template.send(topicName, customer);
             future.whenComplete((result, ex) -> {
                 if (ex == null) {
                     RecordMetadata recordMetadata = result.getRecordMetadata();
-                    log.info("Sent message=[ {} ] with offset=[ {} ]", customer.toString(), recordMetadata.offset());
-                    log.info("Topic Name = {}", recordMetadata.topic());
-                    log.info("Topic Partition = {}", recordMetadata.partition());
+                    sendLog(customer.toString(), recordMetadata);
+
                 } else {
                     System.out.println("Unable to send message=[" +
                             customer.toString() + "] due to : " + ex.getMessage());
@@ -41,18 +40,24 @@ public class KafkaMessagePublisher {
             System.out.println("ERROR : "+ ex.getMessage());
         }
     }
+
     public void sendMessageToTopic(String message){
-        CompletableFuture<SendResult<String, Object>> future = template.send(topicName, message);
+        CompletableFuture<SendResult<String, Object>> future =
+                template.send(topicName, message);
         future.whenComplete((result,ex)->{
             if (ex == null) {
                 RecordMetadata recordMetadata = result.getRecordMetadata();
-                log.info("Sent message=[ {} ] with offset=[ {} ]", message, recordMetadata.offset());
-                log.info("Topic Name = {}", recordMetadata.topic());
-                log.info("Topic Partition = {}", recordMetadata.partition());
+                sendLog(message, recordMetadata);
             } else {
                 System.out.println("Unable to send message=[" +
                         message + "] due to : " + ex.getMessage());
             }
         });
+    }
+
+    private static void sendLog(String message, RecordMetadata recordMetadata) {
+        log.info("Sent message = {} with offset = {}", message, recordMetadata.offset());
+        log.info("Topic Name = {}", recordMetadata.topic());
+        log.info("Topic Partition Count = {}", recordMetadata.partition());
     }
 }
